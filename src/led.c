@@ -2,6 +2,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/led.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led/lp50xx.h>
 #include <zephyr/dt-bindings/led/led.h>
 #include <zephyr/kernel.h>
@@ -41,7 +42,6 @@ LOG_MODULE_REGISTER(led_bar, 4);
 
 #define BATTERY_CRITICAL_THRESHOLD CONFIG_VISORBEARER_LED_BAR_BATTERY_CRITICAL_THRESHOLD
 #define BATTERY_LOW_THRESHOLD CONFIG_VISORBEARER_LED_BAR_BATTERY_LOW_THRESHOLD
-#define BATTERY_FULL_THRESHOLD CONFIG_VISORBEARER_LED_BAR_BATTERY_FULL_THRESHOLD
 #define BATTERY_PER_SEGMENT 25
 
 #define MOD_SEGMENT_SHIFT 0
@@ -119,6 +119,7 @@ static struct led_bar conn_bar;
 static struct led_bar batt_bar;
 static const struct device *led_conn_dev;
 static const struct device *led_batt_dev;
+static const struct device *gpio0_dev;
 
 static struct {
     uint8_t active_profile;
@@ -126,6 +127,7 @@ static struct {
     bool advertising;
     uint8_t battery_percentage;
     bool charging;
+    bool actively_charging;
     bool modifiers[NUM_SEGMENTS];  // [shift, ctrl, alt, gui]
 } system_state;
 
@@ -215,9 +217,16 @@ static bool any_modifier_active(void) {
     return false;
 }
 
+static bool is_actively_charging(void) {
+    if (!gpio0_dev) return false;
+    // Pin is LOW when actively charging
+    return gpio_pin_get(gpio0_dev, 17) == 0;
+}
+
 static struct battery_segment_config get_battery_segment_config(int segment,
                                                                 uint8_t battery_pct,
-                                                                bool charging) {
+                                                                bool charging,
+                                                                bool actively_charging) {
     bool is_critical = battery_pct < BATTERY_CRITICAL_THRESHOLD && !charging;
 
     struct battery_segment_config config = {
@@ -243,7 +252,7 @@ static struct battery_segment_config get_battery_segment_config(int segment,
         // partial segment
         if (charging) {
             config.color = COLOR_CHARGING_GREEN;
-            if (battery_pct < BATTERY_FULL_THRESHOLD) {
+            if (actively_charging) {
                 config.animation = ANIM_BREATH;
             }
         } else if (is_critical) {
@@ -309,7 +318,7 @@ static void display_modifiers(void) {
 static void display_battery_status(void) {
     for (int i = 0; i < NUM_SEGMENTS; i++) {
         struct battery_segment_config config = get_battery_segment_config(
-            i, system_state.battery_percentage, system_state.charging);
+            i, system_state.battery_percentage, system_state.charging, system_state.actively_charging);
 
         segment_set(&batt_bar.segments[i], config.color, MAX_BRIGHTNESS,
                    config.animation, LED_FADE_STEP_SIZE);
@@ -340,6 +349,7 @@ static void refresh_system_state(void) {
     system_state.advertising = zmk_ble_active_profile_is_open() && !system_state.connected;
     system_state.battery_percentage = zmk_battery_state_of_charge();
     system_state.charging = zmk_usb_is_powered();
+    system_state.actively_charging = is_actively_charging();
 }
 
 static void update_bars(void) {
@@ -436,6 +446,15 @@ static int led_init(void) {
         LOG_ERR("LED devices not ready");
         return -ENODEV;
     }
+
+    // config charging input pin
+    gpio0_dev = DEVICE_DT_GET(DT_NODELABEL(gpio0));
+    if (!device_is_ready(gpio0_dev)) {
+        LOG_ERR("GPIO0 device not ready");
+        return -ENODEV;
+    }
+
+    gpio_pin_configure(gpio0_dev, 17, GPIO_INPUT);
 
     memset(&conn_bar, 0, sizeof(conn_bar));
     memset(&batt_bar, 0, sizeof(batt_bar));

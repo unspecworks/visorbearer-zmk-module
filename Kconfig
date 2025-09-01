@@ -43,7 +43,7 @@ config VISORBEARER_LED_BAR_MODIFIER_FADE_STEP_SIZE
 
 config VISORBEARER_LED_BAR_BREATH_MIN
     int "Minimum brightness for breathing effect (0-100)"
-    default 10
+    default 5
     range 0 50
     help
       The lowest brightness level during breathing animation.
@@ -90,13 +90,6 @@ config VISORBEARER_LED_BAR_BATTERY_LOW_THRESHOLD
     help
       Between CRITICAL and LOW thresholds, first segment shows yellow.
 
-config VISORBEARER_LED_BAR_BATTERY_FULL_THRESHOLD
-    int "Full battery level percentage"
-    default 92
-    range 80 99
-    help
-      Above this percentage, charging breathing is disabled to indicate
-      the battery is nearly full.
 
 config VISORBEARER_LED_BAR_BATTERY_GRANULAR
     bool "Enable granular battery percentage display"
