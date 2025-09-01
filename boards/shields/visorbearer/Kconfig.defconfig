@@ -1,0 +1,9 @@
+if SHIELD_VISORBEARER
+
+config ZMK_KEYBOARD_NAME
+   default "Visorbearer"
+
+config VISORBEARER_LED_BAR
+   default y
+
+endif

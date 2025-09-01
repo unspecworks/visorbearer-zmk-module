@@ -1,0 +1,29 @@
+/ {
+    behaviors {
+        /omit-if-no-ref/ ind_bat: ind_bat {
+            compatible = "zmk,behavior-visorbearer-led-bars";
+            #binding-cells = <0>;
+            indicate-battery;
+        };
+        /omit-if-no-ref/ ind_con: ind_con {
+            compatible = "zmk,behavior-visorbearer-led-bars";
+            #binding-cells = <0>;
+            indicate-connectivity;
+        };
+    };
+
+    macros {
+        /omit-if-no-ref/ bt_sel_led: bt_sel_with_indicator {
+            compatible = "zmk,behavior-macro-one-param";
+            #binding-cells = <1>;
+            bindings = <&macro_param_1to2>,
+                       <&bt BT_SEL MACRO_PLACEHOLDER>,
+                       <&ind_con>;
+        };
+        /omit-if-no-ref/ bt_clr_led: bt_clr_with_indicator {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&bt BT_CLR>, <&ind_con>;
+        };
+    };
+};

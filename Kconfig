@@ -1,0 +1,109 @@
+config VISORBEARER_LED_BAR
+    bool "Enable LED bar status indicators for Visorbearer keyboard"
+    select LED
+    select LP50XX
+
+if VISORBEARER_LED_BAR
+
+# Animation parameters (optimized for 100Hz refresh rate)
+config VISORBEARER_LED_BAR_FADE_STEP_SIZE
+    int "Brightness change per animation frame (0-100)"
+    default 8
+    range 1 50
+    help
+      Controls how fast LEDs fade between brightness levels.
+      Higher values = faster transitions, lower values = smoother fades.
+      Optimized for 100Hz refresh rate (10ms intervals).
+
+config VISORBEARER_LED_BAR_INIT_FADE_STEP_SIZE
+    int "Brightness change per init fade frame (0-100)"
+    default 15
+    range 1 50
+    help
+      Controls how fast LEDs fade during the initialization sequence.
+      Optimized for 100Hz refresh rate (10ms intervals).
+
+config VISORBEARER_LED_BAR_BREATH_STEP_SIZE
+    int "Brightness change per breath frame (0-100)"
+    default 3
+    range 1 20
+    help
+      Controls the speed of the breathing animation.
+      Higher values = faster breathing, lower values = slower breathing.
+      Optimized for 100Hz refresh rate (10ms intervals).
+
+config VISORBEARER_LED_BAR_MODIFIER_FADE_STEP_SIZE
+    int "Brightness change per modifier animation frame (0-100)"
+    default 25
+    range 1 50
+    help
+      Controls how fast modifier key LEDs fade in/out when pressed/released.
+      Higher values = more responsive feedback, lower values = smoother transitions.
+      Optimized for responsive modifier key visual feedback.
+
+config VISORBEARER_LED_BAR_BREATH_MIN
+    int "Minimum brightness for breathing effect (0-100)"
+    default 10
+    range 0 50
+    help
+      The lowest brightness level during breathing animation.
+
+config VISORBEARER_LED_BAR_BREATH_MAX
+    int "Maximum brightness for breathing effect (0-100)"
+    default 100
+    range 50 100
+    help
+      The highest brightness level during breathing animation.
+
+# Timing parameters
+config VISORBEARER_LED_BAR_STARTUP_DISPLAY_TIME_MS
+    int "Show status duration at startup in milliseconds"
+    default 6000
+    help
+      How long to show LED status indicators at startup.
+
+config VISORBEARER_LED_BAR_EVENT_DISPLAY_TIME_MS
+    int "Show status duration for events in milliseconds"
+    default 3000
+    help
+      How long to show LED status indicators when events occur
+      (profile changes, connection changes, etc).
+
+config VISORBEARER_LED_BAR_INIT_PAUSE_TIME_MS
+    int "Pause before showing status after init in milliseconds"
+    default 300
+    help
+      Brief pause between initialization sequence and status display.
+
+# Battery level thresholds
+config VISORBEARER_LED_BAR_BATTERY_CRITICAL_THRESHOLD
+    int "Critical battery level percentage"
+    default 8
+    range 1 20
+    help
+      Below this percentage, battery indicator shows red and breathes.
+
+config VISORBEARER_LED_BAR_BATTERY_LOW_THRESHOLD
+    int "Low battery level percentage"
+    default 15
+    range 10 30
+    help
+      Between CRITICAL and LOW thresholds, first segment shows yellow.
+
+config VISORBEARER_LED_BAR_BATTERY_FULL_THRESHOLD
+    int "Full battery level percentage"
+    default 92
+    range 80 99
+    help
+      Above this percentage, charging breathing is disabled to indicate
+      the battery is nearly full.
+
+config VISORBEARER_LED_BAR_BATTERY_GRANULAR
+    bool "Enable granular battery percentage display"
+    default y
+    help
+      Show battery percentage with 3 brightness levels within each 25% segment.
+      For the last lit segment: 0-32% = off, 33-66% = 45% brightness, 67-100% = 70% brightness.
+      When disabled, uses simple 25% segments at full brightness.
+
+endif # VISORBEARER_LED_BAR

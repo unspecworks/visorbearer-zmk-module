@@ -1,0 +1,7 @@
+file_format: "1"
+id: visorbearer
+name: Visorbearer
+type: shield
+requires: [seeeduino_xiao_ble]
+features:
+  - keys

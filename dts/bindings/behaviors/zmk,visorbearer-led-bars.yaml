@@ -1,0 +1,11 @@
+description: Visorbearer LED bars indicator behavior
+
+compatible: "zmk,behavior-visorbearer-led-bars"
+
+include: zero_param.yaml
+
+properties:
+  indicate-battery:
+    type: boolean
+  indicate-connectivity:
+    type: boolean
