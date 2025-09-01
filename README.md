@@ -1,6 +1,6 @@
 # Visorbearer ZMK Module
 
-This is the ZMK module for the Visorbearer keyboard - a 32-key split keyboard featuring dual RGB LED status bars powered by LP5012 drivers.
+This is the ZMK module for the [Visorbearer](https://github.com/carrefinho/visorbearer) keyboard, a 32-key unibody split wireless keyboard featuring 8 RGB LED indicators.
 
 ## Usage
 
@@ -41,19 +41,40 @@ For more information on ZMK Modules and building locally, see [the ZMK docs page
 
 ## LED Features
 
-Visorbearer features two independent LED bars:
+Visorbearer features two RGB LED bars with four segments each:
 
-**Connection Bar (Bar A):**
+**Connection Bar (left):**
 - **White**: Connected Bluetooth profile
 - **Cyan (Breathing)**: Paired but not connected
 - **Yellow (Breathing)**: Open profile, advertising
 - **Dim White**: Active modifier keys (Shift/Ctrl/Alt/GUI)
 
-**Battery Bar (Bar B):**
-- **White**: Normal battery level
+**Battery Bar (right):**
+- **White**: Normal battery
 - **Yellow**: Low battery
 - **Red**: Critical battery
 - **Green**: Charging
+
+## LED Indication Behaviors
+
+Two behaviors are available to trigger LED indications on demand:
+
+```dts
+&ind_bat    // Show battery status when pressed
+&ind_con    // Show connection status when pressed
+```
+
+### Bluetooth Behavior Wrapper Macros
+
+Use these macros to also trigger LED indications when selecting/clearing BT profiles:
+
+```dts
+&bt_sel_led 0   // Select BT profile 0 and show connection status
+&bt_sel_led 1   // Select BT profile 1 and show connection status
+&bt_sel_led 2   // Select BT profile 2 and show connection status
+&bt_sel_led 3   // Select BT profile 3 and show connection status
+&bt_clr_led     // Clear current BT profile and show connection status
+```
 
 ## Configuration
 
