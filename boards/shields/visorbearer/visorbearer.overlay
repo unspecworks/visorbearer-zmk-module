@@ -5,7 +5,7 @@
 / {
    chosen {
       zmk,kscan = &kscan0;
-      zmk,physical-layout = &visorbearer_32_layout;
+      zmk,physical-layout = &visorbearer_33332_layout;
    };
 
    kscan0: kscan0 {

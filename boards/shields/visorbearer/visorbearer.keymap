@@ -31,13 +31,6 @@
             flavor = "balanced";
             bindings = <&kp>, <&kp>;
         };
-        close: close_ht {
-            compatible = "zmk,behavior-hold-tap";
-            #binding-cells = <2>;
-            tapping_term_ms = <300>;
-            flavor = "tap-preferred";
-            bindings = <&cmd_q>, <&kp>;
-        };
         sabk: shift_to_alt_backspace {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
@@ -57,13 +50,6 @@
             tapping-term-ms = <150>;
             quick-tap-ms = <200>;
             bindings = <&mo>, <&sabk>;
-        };
-        shot: screenshot_hold_tap {
-            compatible = "zmk,behavior-hold-tap";
-            #binding-cells = <2>;
-            tapping_term_ms = <200>;
-            flavor = "balanced";
-            bindings = <&open_shotty>, <&shot_td>;
         };
         hrm: alpha_hold_tap {
             compatible = "zmk,behavior-hold-tap";
@@ -94,14 +80,6 @@
             bindings = <&kp>, <&kp>;
             hold-trigger-key-positions = <0 1 2 3 4 10 11 12 13 14 20 21 22 23 28 29 30 31>;
         };
-      //   s_ldr: left_thumb_shift_leader_hold_tap {
-      //       compatible = "zmk,behavior-hold-tap";
-      //       #binding-cells = <2>;
-      //       flavor = "balanced";
-      //       tapping-term-ms = <150>;
-      //       quick-tap-ms = <200>;
-      //       bindings = <&kp>, <&leader>;
-      //   };
     };
 
     combos {
@@ -193,53 +171,11 @@
             key-positions = <9 19>;
             bindings = <&kp SQT>;
         };
-        commadot_backslash {
-            timeout-ms = <75>;
-            key-positions = <25 26>;
-            bindings = <&kp BSLH>;
-        };
         bottomrightcorner_enter {
             timeout-ms = <75>;
             key-positions = <26 27>;
             bindings = <&kp ENTER>;
         };
-        r_sub_homerow_lang {
-            timeout-ms = <75>;
-            key-positions = <24 26>;
-            bindings = <&kp LC(SPACE)>;
-        };
-
-        st_newtab {
-            timeout-ms = <50>;
-            key-positions = <12 13>;
-            bindings = <&kp LG(T)>;
-            require-prior-idle-ms = <200>;
-        };
-        zx_undo {
-            timeout-ms = <50>;
-            key-positions = <20 21>;
-            bindings = <&kp LG(Z)>;
-        };
-        xc_cut {
-            timeout-ms = <50>;
-            key-positions = <21 22>;
-            bindings = <&kp LG(X)>;
-        };
-        cd_copy {
-            timeout-ms = <50>;
-            key-positions = <22 23>;
-            bindings = <&kp LG(C)>;
-        };
-        dv_paste {
-            timeout-ms = <50>;
-            key-positions = <23 14>;
-            bindings = <&kp LG(V)>;
-        };
-        // zslash_select_line {
-            //    timeout-ms = <100>;
-            //    key-positions = <20 29>;
-            //    bindings = <&select_line>;
-        // };
     };
 
     conditional_layers {
@@ -247,58 +183,6 @@
         tri_layer {
             if-layers = <1 2>;
             then-layer = <3>;
-        };
-    };
-
-    macros {
-        select_line: select_line {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings
-                = <&kp HOME>
-                , <&kp LS(END)>
-                ;
-        };
-        pswd: password {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&kp N0 &kp N2 &kp N4 &kp N2 &kp N9 &kp N6 &kp RET>;
-        };
-        cmd_q: command_q {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&kp LG(Q)>;
-        };
-        open_shotty: open_shotty {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&kp LC(LA(LG(N1)))>;
-        };
-        bt_sel_led: bt_sel_with_indicator {
-            compatible = "zmk,behavior-macro-one-param";
-            #binding-cells = <1>;
-            bindings = <&macro_param_1to2>, <&bt BT_SEL MACRO_PLACEHOLDER>, <&ind_con>;
-        };
-        bt_clr_led: bt_clr_with_indicator {
-            compatible = "zmk,behavior-macro";
-            #binding-cells = <0>;
-            bindings = <&bt BT_CLR>, <&ind_con>;
-        };
-        // sleep: mac_sleep {
-        //     compatible = "zmk,behavior-macro";
-        //     #binding-cells = <0>;
-        //     tap-ms = <200>;
-        //     bindings = <&kp C_SLEEP>;
-        // };
-    };
-
-    tap_dances {
-        shot_td: screenshot_multi {
-            compatible = "zmk,behavior-tap-dance";
-            #binding-cells = <0>;
-            tapping-term-ms = <300>;
-            bindings = <&kp LS(LG(N2))>,
-                       <&kp LS(LG(N3))>;
         };
     };
 
@@ -330,7 +214,7 @@
             bindings = <
             AS(N1)          AS(N2)          AS(N3)          AS(N4)          AS(N5)                                          AS(N6)          AS(N7)          AS(N8)          AS(N9)          AS(N0)
             AS(GRAVE)       &sk LCTRL       &sk LALT        &sk LGUI        &sk LC(LALT)                                    AS(BSLH)        AS(MINUS)       AS(EQUAL)       AS(LBKT)        AS(RBKT)
-            &shot 0 0       &trans          &trans          &trans                                                                          &trans          &trans          &trans          &kp ENTER
+            &trans          &trans          &trans          &trans                                                                          &trans          &trans          &trans          &kp ENTER
                                                                             &trans          &trans          &mo NAV         &kp LSHFT
             >;
         };
@@ -358,7 +242,6 @@
 };
 
 &lt {
-    // require-prior-idle-ms = <100>;
     tapping-term-ms = <150>;
     quick-tap-ms = <200>;
 };
@@ -366,10 +249,6 @@
 &mt {
     quick-tap-ms = <200>;
 };
-
-// &caps_word {
-//     shift-list = <MINUS>;
-// };
 
 &sk {
     release-after-ms = <500>;
