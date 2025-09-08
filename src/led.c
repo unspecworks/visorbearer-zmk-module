@@ -219,8 +219,17 @@ static bool any_modifier_active(void) {
 
 static bool is_actively_charging(void) {
     if (!gpio0_dev) return false;
-    // Pin is LOW when actively charging
-    return gpio_pin_get(gpio0_dev, 17) == 0;
+
+    // configure as input only when reading
+    gpio_pin_configure(gpio0_dev, 17, GPIO_INPUT);
+
+    k_usleep(10);
+
+    bool charging = (gpio_pin_get(gpio0_dev, 17) == 0);
+
+    gpio_pin_configure(gpio0_dev, 17, GPIO_DISCONNECTED);
+
+    return charging;
 }
 
 static struct battery_segment_config get_battery_segment_config(int segment,
@@ -454,7 +463,6 @@ static int led_init(void) {
         return -ENODEV;
     }
 
-    gpio_pin_configure(gpio0_dev, 17, GPIO_INPUT);
 
     memset(&conn_bar, 0, sizeof(conn_bar));
     memset(&batt_bar, 0, sizeof(batt_bar));
