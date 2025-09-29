@@ -18,7 +18,8 @@ manifest:
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    - name: visorbearer-zmk-module                # <---
+    - name: zmk-keyboards-visorbearer             # <---
+      repo-path: visorbearer-zmk-module           # <---
       remote: carrefinho                          # <---
       revision: main                              # <---
   self:
@@ -44,10 +45,12 @@ For more information on ZMK Modules and building locally, see [the ZMK docs page
 Visorbearer features two RGB LED bars with four segments each:
 
 **Connection Bar (left):**
-- **White**: Connected Bluetooth profile
-- **Cyan (Breathing)**: Paired but not connected
-- **Yellow (Breathing)**: Open profile, advertising
-- **Dim White**: Active modifier keys (Shift/Ctrl/Alt/GUI)
+- **Upon Bluetooth events or behavior**:
+  - **White**: Connected Bluetooth profile
+  - **Cyan (Breathing)**: Paired but not connected
+  - **Yellow (Breathing)**: Open profile, advertising
+- **When idle**:
+  - **Dim White**: Active modifier keys (Shift/Ctrl/Alt/GUI)
 
 **Battery Bar (right):**
 - **White**: Normal battery
