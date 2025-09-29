@@ -11,6 +11,7 @@
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/activity_state_changed.h>
 #include <zmk/events/keycode_state_changed.h>
+#include <zmk/events/battery_state_changed.h>
 #include <zmk/event_manager.h>
 #include <zmk/battery.h>
 #include <zmk/activity.h>
@@ -43,6 +44,7 @@ LOG_MODULE_REGISTER(led_bar, 4);
 #define BATTERY_CRITICAL_THRESHOLD CONFIG_VISORBEARER_LED_BAR_BATTERY_CRITICAL_THRESHOLD
 #define BATTERY_LOW_THRESHOLD CONFIG_VISORBEARER_LED_BAR_BATTERY_LOW_THRESHOLD
 #define BATTERY_PER_SEGMENT 25
+#define CHARGING_CHECK_THROTTLE_MS 1000
 
 #define MOD_SEGMENT_SHIFT 0
 #define MOD_SEGMENT_CTRL  1
@@ -128,6 +130,7 @@ static struct {
     uint8_t battery_percentage;
     bool charging;
     bool actively_charging;
+    int64_t last_charging_check;
     bool modifiers[NUM_SEGMENTS];  // [shift, ctrl, alt, gui]
 } system_state;
 
@@ -171,11 +174,12 @@ static void segment_update(struct led_segment *seg) {
         case ANIM_FADE:
             if (seg->brightness != seg->target_brightness) {
                 int16_t diff = seg->target_brightness - seg->brightness;
-                if (abs(diff) <= abs(seg->fade_step)) {
+                int16_t step = abs(seg->fade_step);
+                if (abs(diff) <= step) {
                     seg->brightness = seg->target_brightness;
                     seg->animation = ANIM_NONE;
                 } else {
-                    seg->brightness += (diff > 0) ? abs(seg->fade_step) : -abs(seg->fade_step);
+                    seg->brightness += (diff > 0) ? step : -step;
                 }
                 seg->dirty = true;
             } else {
@@ -220,12 +224,18 @@ static bool any_modifier_active(void) {
 static bool is_actively_charging(void) {
     if (!gpio0_dev) return false;
 
-    // configure as input only when reading
+    // Configure as input only when reading to minimize leakage current
     gpio_pin_configure(gpio0_dev, 17, GPIO_INPUT);
 
     k_usleep(10);
 
-    bool charging = (gpio_pin_get(gpio0_dev, 17) == 0);
+    int pin_value = gpio_pin_get(gpio0_dev, 17);
+    bool charging = (pin_value == 0);
+
+    // If gpio_pin_get fails (returns negative), treat as not charging
+    if (pin_value < 0) {
+        charging = false;
+    }
 
     gpio_pin_configure(gpio0_dev, 17, GPIO_DISCONNECTED);
 
@@ -316,10 +326,9 @@ static void display_modifiers(void) {
         if (system_state.modifiers[i]) {
             segment_set(&conn_bar.segments[i], COLOR_MODIFIER_ACTIVE, MAX_BRIGHTNESS,
                        ANIM_FADE, MODIFIER_FADE_STEP_SIZE);
-        } else if (conn_bar.segments[i].target_brightness != 0) {
-            conn_bar.segments[i].target_brightness = 0;
-            conn_bar.segments[i].animation = ANIM_FADE;
-            conn_bar.segments[i].fade_step = MODIFIER_FADE_STEP_SIZE;
+        } else {
+            segment_set(&conn_bar.segments[i], conn_bar.segments[i].color[0] == 0 ?
+                       COLOR_OFF : COLOR_MODIFIER_ACTIVE, 0, ANIM_FADE, MODIFIER_FADE_STEP_SIZE);
         }
     }
 }
@@ -353,19 +362,24 @@ static bool bars_animating(void) {
 }
 
 
-static void refresh_system_state(void) {
+static void update_ble_state(void) {
     system_state.connected = zmk_ble_active_profile_is_connected();
     system_state.advertising = zmk_ble_active_profile_is_open() && !system_state.connected;
-    system_state.battery_percentage = zmk_battery_state_of_charge();
-    system_state.charging = zmk_usb_is_powered();
-    system_state.actively_charging = is_actively_charging();
+}
+
+static void update_charging_state(void) {
+    int64_t now = k_uptime_get();
+    if (now - system_state.last_charging_check >= CHARGING_CHECK_THROTTLE_MS) {
+        system_state.actively_charging = is_actively_charging();
+        system_state.last_charging_check = now;
+    }
 }
 
 static void update_bars(void) {
     int64_t current_time = k_uptime_get();
 
-    if (conn_bar.expire_time > 0 || batt_bar.expire_time > 0) {
-        refresh_system_state();
+    if (batt_bar.expire_time > 0 && system_state.charging) {
+        update_charging_state();
     }
 
     if (conn_bar.expire_time > 0 && current_time >= conn_bar.expire_time) {
@@ -472,7 +486,11 @@ static int led_init(void) {
     }
 
     system_state.active_profile = zmk_ble_active_profile_index();
-    refresh_system_state();
+    update_ble_state();
+    system_state.battery_percentage = zmk_battery_state_of_charge();
+    system_state.charging = zmk_usb_is_powered();
+    system_state.actively_charging = is_actively_charging();
+    system_state.last_charging_check = k_uptime_get();
 
     zmk_mod_flags_t mods = zmk_hid_get_explicit_mods();
     system_state.modifiers[MOD_SEGMENT_SHIFT] = (mods & (MOD_LSFT | MOD_RSFT)) != 0;
@@ -537,6 +555,7 @@ static void led_thread(void *arg1, void *arg2, void *arg3) {
 
 static int ble_profile_changed_listener(const zmk_event_t *eh) {
     system_state.active_profile = zmk_ble_active_profile_index();
+    update_ble_state();
     LOG_INF("Profile changed to %d", system_state.active_profile);
     show_connection_status();
     return ZMK_EV_EVENT_BUBBLE;
@@ -548,7 +567,7 @@ ZMK_SUBSCRIPTION(led_bar, zmk_ble_active_profile_changed);
 static int activity_state_changed_listener(const zmk_event_t *eh) {
     const struct zmk_activity_state_changed *event = as_zmk_activity_state_changed(eh);
     if (event && event->state == ZMK_ACTIVITY_ACTIVE) {
-        refresh_system_state();
+        update_ble_state();
 
         // show status for disconnected profile (when endpoint is BLE) or critical battery
         if (!system_state.connected && zmk_endpoints_selected().transport == ZMK_TRANSPORT_BLE) {
@@ -565,13 +584,31 @@ ZMK_LISTENER(led_activity, activity_state_changed_listener);
 ZMK_SUBSCRIPTION(led_activity, zmk_activity_state_changed);
 
 static int usb_conn_state_changed_listener(const zmk_event_t *eh) {
-    LOG_INF("USB state changed");
+    system_state.charging = zmk_usb_is_powered();
+    system_state.actively_charging = is_actively_charging();
+    system_state.last_charging_check = k_uptime_get();
+    LOG_INF("USB state changed - charging: %d", system_state.charging);
     show_battery_status();
     return ZMK_EV_EVENT_BUBBLE;
 }
 
 ZMK_LISTENER(led_usb, usb_conn_state_changed_listener);
 ZMK_SUBSCRIPTION(led_usb, zmk_usb_conn_state_changed);
+
+static int battery_state_changed_listener(const zmk_event_t *eh) {
+    const struct zmk_battery_state_changed *event = as_zmk_battery_state_changed(eh);
+    if (event) {
+        system_state.battery_percentage = event->state_of_charge;
+        // Show battery bar if critical
+        if (system_state.battery_percentage < BATTERY_CRITICAL_THRESHOLD) {
+            show_battery_status();
+        }
+    }
+    return ZMK_EV_EVENT_BUBBLE;
+}
+
+ZMK_LISTENER(led_battery, battery_state_changed_listener);
+ZMK_SUBSCRIPTION(led_battery, zmk_battery_state_changed);
 
 static int keycode_state_changed_listener(const zmk_event_t *eh) {
     const struct zmk_keycode_state_changed *event = as_zmk_keycode_state_changed(eh);
